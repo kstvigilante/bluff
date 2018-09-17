@@ -3,6 +3,7 @@
 #include <eosiolib/asset.hpp>
 #include <eosiolib/multi_index.hpp>
 #include <eosiolib/symbol.hpp>
+#include <eosiolib/crypto.h>
 
 using namespace eosio;
 using namespace std;
@@ -14,12 +15,19 @@ class bluff: public eosio:: contract{
 
         //@abi action
         void creategame(account_name player_a); 
+        
         //@abi action
         void joingame(uint64_t id, account_name player_b);
+
+        //@abi action
+        void fold(uint64_t id, account_name player);
+
+        //@abi action
+        void bet(uint64_t id, account_name player ,asset amount);
+
+        //@abi action
+        void accept(uint64_t id, account_name player);
     
-
-        
-
     private:
 
         const uint8_t CREATED = 1;
@@ -33,7 +41,7 @@ class bluff: public eosio:: contract{
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
-        //@abi table games4 i64
+        //@abi table games123 i64
         struct game{
             
             uint64_t id;
@@ -59,9 +67,9 @@ class bluff: public eosio:: contract{
                             (score_player_a)(score_player_b)(total_bet_player_a)(total_bet_player_b))
         };
 
-        typedef eosio::multi_index<N(games4), game> game_table;
-
-        void startgame(uint8_t id){
+        typedef eosio::multi_index<N(games123), game> game_table;
+        
+        void startgame(uint64_t id){
             game_table gt(_self, _self);
             auto itr = gt.find(id);
             eosio_assert(itr != gt.end(), "No such game exists");
@@ -74,6 +82,31 @@ class bluff: public eosio:: contract{
             });
         }
 
+        void decidewinner(uint64_t id){
+
+            game_table gt(_self, _self);
+            auto itr = gt.find(id);
+            account_name winner = itr->winner;
+            asset amount = itr->pot;
+
+            asset commission;
+            asset min_bal = asset(20000, symbol_type(S(4, SYS)));
+            if(amount <= min_bal){
+                commission = asset(100, symbol_type(S(4, SYS)));
+                amount = amount-commission;
+            }
+            else{
+                commission = (amount *5)/100;
+                amount = amount-commission;
+            }
+
+            action(
+            permission_level{ _self, N(active) },
+            N(eosio.token), N(transfer),
+            make_tuple(_self, winner, amount, string("Congrats you won!!!!")))
+            .send();
+
+        }
 };
 
-EOSIO_ABI(bluff, (creategame)(joingame))
+EOSIO_ABI(bluff, (creategame)(joingame)(fold))
