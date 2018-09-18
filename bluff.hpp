@@ -3,7 +3,8 @@
 #include <eosiolib/asset.hpp>
 #include <eosiolib/multi_index.hpp>
 #include <eosiolib/symbol.hpp>
-#include <eosiolib/crypto.h>
+#include <eosiolib/transaction.hpp>
+
 
 using namespace eosio;
 using namespace std;
@@ -14,10 +15,10 @@ class bluff: public eosio:: contract{
         bluff(account_name self): contract(self){};
 
         //@abi action
-        void creategame(account_name player_a); 
+        void creategame(account_name player); 
         
         //@abi action
-        void joingame(uint64_t id, account_name player_b);
+        void joingame(uint64_t id, account_name player);
 
         //@abi action
         void fold(uint64_t id, account_name player);
@@ -27,6 +28,10 @@ class bluff: public eosio:: contract{
 
         //@abi action
         void accept(uint64_t id, account_name player);
+
+        //@abi action
+        void raise(uint64_t id, account_name player, asset amount);
+
     
     private:
 
@@ -41,7 +46,7 @@ class bluff: public eosio:: contract{
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
-        //@abi table games123 i64
+        //@abi table games21 i64
         struct game{
             
             uint64_t id;
@@ -60,14 +65,15 @@ class bluff: public eosio:: contract{
             uint8_t score_player_b;
             asset total_bet_player_a;
             asset total_bet_player_b;
-
+    
             uint64_t primary_key() const { return id; }
             EOSLIB_SERIALIZE(game, (id)(player_a)(player_b)(dealer)(turn)(winner)(pot)(game_status)
                             (option_player_a)(option_player_b)(curr_bet_Player_a)(curr_bet_player_b)
-                            (score_player_a)(score_player_b)(total_bet_player_a)(total_bet_player_b))
+                            (score_player_a)(score_player_b)(total_bet_player_a)(total_bet_player_b)
+                            )
         };
 
-        typedef eosio::multi_index<N(games123), game> game_table;
+        typedef eosio::multi_index<N(games21), game> game_table;
         
         void startgame(uint64_t id){
             game_table gt(_self, _self);
@@ -100,13 +106,17 @@ class bluff: public eosio:: contract{
                 amount = amount-commission;
             }
 
-            action(
-            permission_level{ _self, N(active) },
-            N(eosio.token), N(transfer),
-            make_tuple(_self, winner, amount, string("Congrats you won!!!!")))
-            .send();
+            depositfunds(_self, winner, amount, "Congratulations you have won the game");
+        }
 
+        void depositfunds(account_name from, account_name to, asset balance, string memo){
+
+            action(
+            permission_level{ from, N(active) },
+            N(eosio.token), N(transfer),
+            make_tuple(from, to, balance, memo))
+            .send();
         }
 };
 
-EOSIO_ABI(bluff, (creategame)(joingame)(fold))
+EOSIO_ABI(bluff, (creategame)(joingame)(fold)(bet)(accept)(raise))
