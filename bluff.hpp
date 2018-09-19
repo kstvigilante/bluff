@@ -46,7 +46,7 @@ class bluff: public eosio:: contract{
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
-        //@abi table games21 i64
+        //@abi table games212 i64
         struct game{
             
             uint64_t id;
@@ -73,7 +73,7 @@ class bluff: public eosio:: contract{
                             )
         };
 
-        typedef eosio::multi_index<N(games21), game> game_table;
+        typedef eosio::multi_index<N(games212), game> game_table;
         
         void startgame(uint64_t id){
             game_table gt(_self, _self);

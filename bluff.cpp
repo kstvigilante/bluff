@@ -119,90 +119,138 @@ void bluff :: accept(uint64_t id, account_name player){
     require_auth(player);
     game_table gt(_self, _self);
     auto itr = gt.find(id);
-    eosio_assert(itr != gt.end(), "No such game exists");
-    eosio_assert(player == itr->turn, "Not your turn yet");
+    eosio_assert(itr != gt.end(), "Game doesnt exist");
+    eosio_assert(player == itr->turn, "Not your turn");
     eosio_assert(itr->game_status == STARTED, "Game has not started yet");
-    eosio_assert(itr->option_player_a == BET || itr->option_player_b == BET, "Cannot accept ");
-
-    asset amount;
 
     if(player == itr->player_a){
-
-        if(itr->option_player_b == RAISE){
-
-            amount = itr->curr_bet_player_b - itr->curr_bet_Player_a;
-        }
-        else{
-
-            amount = itr->curr_bet_player_b;
-        }
         
-        gt.modify(itr, _self, [&](auto &g){
-            g.turn = itr->player_b;
-            g.curr_bet_Player_a = amount;
-            g.total_bet_player_a += amount;
-            g.pot += amount;
-            g.option_player_a = ACCEPT;
-        });
-
-        depositfunds(player, _self, amount, "bet accepted");
+        asset amount;
+        if(itr->option_player_b == BET){
+            
+            amount = itr->curr_bet_player_b;
+            depositfunds(player, _self, amount, "Player1 accepted the bet");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_b;
+                g.curr_bet_Player_a = amount;
+                g.total_bet_player_a += amount;
+                g.pot += amount;
+                g.option_player_a = ACCEPT;
+            });
+        }
+        if(itr->option_player_b == RAISE){
+            
+            amount = itr->curr_bet_player_b - itr->curr_bet_Player_a;
+            depositfunds(player, _self, amount, "Player1 accepted the bet");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_b;
+                g.curr_bet_Player_a += amount;
+                g.total_bet_player_a += amount;
+                g.pot += amount;
+                g.option_player_a = ACCEPT;
+            });
+        }
     }
     else{
 
+        asset amount;
+
+        if(itr->option_player_a == BET){
+            
+            amount = itr->curr_bet_Player_a;
+            depositfunds(player, _self, amount, "Player2 accepted the bet");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_a;
+                g.curr_bet_player_b = amount;
+                g.total_bet_player_b += amount;
+                g.pot += amount;
+                g.option_player_b = ACCEPT;
+            });
+
+        }
         if(itr->option_player_a == RAISE){
             
             amount = itr->curr_bet_Player_a - itr->curr_bet_player_b;
-        }
-        else{
-            
-            amount = itr->curr_bet_Player_a;
-        }
-        
-        gt.modify(itr, _self, [&](auto &g){
-            g.turn = itr->player_a;
-            g.curr_bet_player_b = amount;
-            g.total_bet_player_b += amount;
-            g.pot += amount;
-            g.option_player_b = ACCEPT;
-        });
+            depositfunds(player, _self, amount, "Player2 accepted the bet");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_a;
+                g.curr_bet_player_b += amount;
+                g.total_bet_player_b += amount;
+                g.pot += amount;
+                g.option_player_b = ACCEPT;
+            });
 
-        depositfunds(player, _self, amount, "bet accepted");
+        }
     }
 }
 
+    
 void bluff :: raise(uint64_t id, account_name player, asset amount){
 
     require_auth(player);
     game_table gt(_self, _self);
     auto itr = gt.find(id);
+
     eosio_assert(itr != gt.end(), "No such game exists");
-    eosio_assert(itr->game_status == STARTED, "Game has not started");
-    eosio_assert(player == itr->turn, "Not your turn yet");
+    eosio_assert(player == itr->turn, "Not your turn ");
+    eosio_assert(itr->game_status == STARTED, "Game has not started yet");
 
     if(player == itr->player_a){
 
-        eosio_assert(amount > itr->curr_bet_player_b,"Amount too low");
-        asset fund = amount - itr->curr_bet_player_b;
-        depositfunds(player, _self, fund, "Bet raised");
+        eosio_assert(amount>itr->curr_bet_player_b, "Amount too low");
 
-        gt.modify(itr, _self, [&](auto &g){
-            g.turn = itr->player_b;
-            g.curr_bet_Player_a += fund;
-            g.total_bet_player_a += fund;
-            g.option_player_a = RAISE;
-        });
+        if(itr->option_player_b == BET){
+            
+            depositfunds(player, _self, amount, "Player1 raised the bet");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_b;
+                g.curr_bet_Player_a = amount;
+                g.total_bet_player_a += amount;
+                g.option_player_a = RAISE;
+                g.pot += amount;
+            });
+        }
+
+        if(itr->option_player_b == RAISE){
+
+            amount = amount - itr->curr_bet_Player_a;
+            depositfunds(player, _self, amount, "Player1 raised the bet");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_b;
+                g.curr_bet_Player_a += amount;
+                g.total_bet_player_a += amount;
+                g.option_player_a = RAISE;
+                g.pot += amount;
+            });
+        }
     }
     else{
 
-        eosio_assert(amount> itr->curr_bet_Player_a,"Amount too low");
-        asset fund = amount - itr->curr_bet_Player_a;
-        depositfunds(player, _self, fund, "Bet raised");
+        eosio_assert(amount > itr->curr_bet_Player_a, "Amount too low");
 
-        gt.modify(itr, _self, [&](auto &g){
-            g.turn = itr->player_a;
-            g.curr_bet_player_b += fund;
-            g.total_bet_player_b += fund;
-            g.option_player_b = RAISE;
-        });
+        if(itr->option_player_a == BET){
+
+            depositfunds(player, _self, amount, "Player2 raised the bet");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_a;
+                g.curr_bet_player_b = amount;
+                g.total_bet_player_b += amount;
+                g.pot += amount;
+                g.option_player_b = RAISE;
+            });
+        }
+
+        if(itr->option_player_a == RAISE){
+
+            amount = amount - itr->curr_bet_player_b;
+            depositfunds(player, _self, amount, "Player2 raised");
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_a;
+                g.curr_bet_player_b += amount;
+                g.total_bet_player_b += amount;
+                g.pot += amount;
+                g.option_player_b = RAISE;
+            });
+        }
     }
 }
