@@ -54,7 +54,7 @@ void bluff :: fold(uint64_t id, account_name player){
     auto itr = gt.find(id);
     eosio_assert(itr != gt.end(), "No such game exists");
     eosio_assert(itr->game_status == STARTED, "Cannot fold yet");
-    eosio_assert(player == itr->turn, "Not your turn");
+    eosio_assert(player == itr->turn, "Not your turn fold");
 
     if(player == itr->player_a){
         gt.modify(itr, _self, [&](auto &g){
@@ -73,7 +73,7 @@ void bluff :: fold(uint64_t id, account_name player){
         });
     }
 
-    decidewinner(id);
+    decidewinner(id); 
 }
 
 void bluff :: bet(uint64_t id, account_name player, asset amount){
@@ -95,7 +95,7 @@ void bluff :: bet(uint64_t id, account_name player, asset amount){
             g.option_player_a = BET;
         });
 
-    depositfunds(player, _self, amount, "bet accepted");
+    depositfunds(player, _self, amount, "Player1 made a bet");
 
     }
     else{
@@ -108,7 +108,7 @@ void bluff :: bet(uint64_t id, account_name player, asset amount){
             g.option_player_b = BET;
         });
 
-    depositfunds(player, _self, amount, "bet accepted");
+    depositfunds(player, _self, amount, "Player2 made a bet");
 
     }
     print("End of bet function");
@@ -182,6 +182,7 @@ void bluff :: accept(uint64_t id, account_name player){
 
         }
     }
+    nextround(id);
 }
 
     
@@ -243,7 +244,7 @@ void bluff :: raise(uint64_t id, account_name player, asset amount){
         if(itr->option_player_a == RAISE){
 
             amount = amount - itr->curr_bet_player_b;
-            depositfunds(player, _self, amount, "Player2 raised");
+            depositfunds(player, _self, amount, "Player2 raised the bet");
             gt.modify(itr, _self, [&](auto &g){
                 g.turn = itr->player_a;
                 g.curr_bet_player_b += amount;
@@ -251,6 +252,76 @@ void bluff :: raise(uint64_t id, account_name player, asset amount){
                 g.pot += amount;
                 g.option_player_b = RAISE;
             });
+        }
+    }
+}
+
+void bluff :: hold(uint64_t id, account_name player){
+
+    require_auth(player);
+    game_table gt(_self, _self);
+    auto itr = gt.find(id);
+
+    eosio_assert(itr != gt.end(), "No such game exist");
+    eosio_assert(player == itr->turn, "Not your turn");
+    eosio_assert(itr->game_status == STARTED, "Game has not started yet");
+
+    if(player == itr->player_a){
+
+        if(itr->option_player_b == NONE){
+
+            gt.modify(itr, _self,[&](auto &g){
+                g.turn = itr->player_b;
+                g.option_player_a = HOLD;
+            });
+            print("Player1 did not place a bet");
+        }
+
+        else if(itr->option_player_b == HOLD){
+            
+            gt.modify(itr, _self,[&](auto &g){
+                g.turn = itr->player_b;
+                g.option_player_a = HOLD;
+            });
+            print("Player1 did not place a bet");
+            nextround(id);
+        }
+
+        else{
+            
+            gt.modify(itr, _self,[&](auto &g){
+                g.option_player_a = HOLD;
+            });
+            fold(id, player);
+        }
+    }
+    else{
+
+        if(itr->option_player_a == NONE){
+
+            gt.modify(itr, _self, [&](auto &g){
+                g.turn = itr->player_a;
+                g.option_player_b = HOLD;
+            });   
+            print("Player2 did not place a bet");
+        }
+
+        else if(itr->option_player_a == HOLD){
+            
+            gt.modify(itr, _self,[&](auto &g){
+                g.turn = itr->player_a;
+                g.option_player_b = HOLD;
+            });
+            print("Player2 did not place a bet");
+            nextround(id);
+        }
+
+        else{
+
+            gt.modify(itr, _self,[&](auto &g){
+                g.option_player_b = HOLD;
+            });
+            fold(id, player);
         }
     }
 }

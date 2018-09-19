@@ -32,6 +32,9 @@ class bluff: public eosio:: contract{
         //@abi action
         void raise(uint64_t id, account_name player, asset amount);
 
+        //@abi action
+        void hold(uint64_t id, account_name player);
+
     
     private:
 
@@ -40,13 +43,14 @@ class bluff: public eosio:: contract{
         const uint8_t STARTED = 3;
         const uint8_t ENDED = 4;
 
+        const uint8_t NONE = 0;
         const uint8_t FOLD = 1;
         const uint8_t HOLD = 2;
         const uint8_t BET = 3;
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
-        //@abi table games212 i64
+        //@abi table games11 i64
         struct game{
             
             uint64_t id;
@@ -65,15 +69,16 @@ class bluff: public eosio:: contract{
             uint8_t score_player_b;
             asset total_bet_player_a;
             asset total_bet_player_b;
+            uint8_t round_number;
     
             uint64_t primary_key() const { return id; }
             EOSLIB_SERIALIZE(game, (id)(player_a)(player_b)(dealer)(turn)(winner)(pot)(game_status)
                             (option_player_a)(option_player_b)(curr_bet_Player_a)(curr_bet_player_b)
                             (score_player_a)(score_player_b)(total_bet_player_a)(total_bet_player_b)
-                            )
+                            (round_number))               
         };
 
-        typedef eosio::multi_index<N(games212), game> game_table;
+        typedef eosio::multi_index<N(games11), game> game_table;
         
         void startgame(uint64_t id){
             game_table gt(_self, _self);
@@ -85,6 +90,7 @@ class bluff: public eosio:: contract{
                 g.game_status = STARTED;
                 g.dealer = itr->player_a;
                 g.turn = itr->player_b;
+                g.round_number = 1;
             });
         }
 
@@ -117,6 +123,20 @@ class bluff: public eosio:: contract{
             make_tuple(from, to, balance, memo))
             .send();
         }
+
+        void nextround(uint64_t id){
+
+            game_table gt(_self, _self);
+            auto itr = gt.find(id);
+            eosio_assert(itr != gt.end(), "No such game exists");
+            eosio_assert(itr->game_status == STARTED, "Game has not started yet");
+
+            gt.modify(itr, _self,[&](auto &g){
+                g.option_player_a = NONE;
+                g.option_player_b = NONE;
+                g.round_number += 1;
+            });
+        }
 };
 
-EOSIO_ABI(bluff, (creategame)(joingame)(fold)(bet)(accept)(raise))
+EOSIO_ABI(bluff, (creategame)(joingame)(fold)(bet)(accept)(raise)(hold))
