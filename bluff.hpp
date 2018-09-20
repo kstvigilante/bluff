@@ -4,6 +4,7 @@
 #include <eosiolib/multi_index.hpp>
 #include <eosiolib/symbol.hpp>
 #include <eosiolib/transaction.hpp>
+#include <vector>
 
 
 using namespace eosio;
@@ -35,6 +36,10 @@ class bluff: public eosio:: contract{
         //@abi action
         void hold(uint64_t id, account_name player);
 
+        //@abi action
+        void revealcards(uint64_t id, account_name player);
+
+        
     
     private:
 
@@ -50,7 +55,7 @@ class bluff: public eosio:: contract{
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
-        //@abi table games11 i64
+        //@abi table gameu i64
         struct game{
             
             uint64_t id;
@@ -70,17 +75,21 @@ class bluff: public eosio:: contract{
             asset total_bet_player_a;
             asset total_bet_player_b;
             uint8_t round_number;
+            vector<uint8_t> cards_playera;
+            vector<uint8_t> cards_playerb;
+
     
             uint64_t primary_key() const { return id; }
-            EOSLIB_SERIALIZE(game, (id)(player_a)(player_b)(dealer)(turn)(winner)(pot)(game_status)
+            /* EOSLIB_SERIALIZE(game, (id)(player_a)(player_b)(dealer)(turn)(winner)(pot)(game_status)
                             (option_player_a)(option_player_b)(curr_bet_Player_a)(curr_bet_player_b)
                             (score_player_a)(score_player_b)(total_bet_player_a)(total_bet_player_b)
-                            (round_number))               
+                            (round_number)(cards_playera)(cards_playerb))     */           
         };
 
-        typedef eosio::multi_index<N(games11), game> game_table;
+        typedef eosio::multi_index<N(gameu), game> game_table;
         
         void startgame(uint64_t id){
+
             game_table gt(_self, _self);
             auto itr = gt.find(id);
             eosio_assert(itr != gt.end(), "No such game exists");
@@ -136,7 +145,20 @@ class bluff: public eosio:: contract{
                 g.option_player_b = NONE;
                 g.round_number += 1;
             });
+        }     
+
+        void createcard(uint64_t id){
+
+            game_table gt(_self, _self);
+            auto itr = gt.find(id);
+            uint8_t card1 = ((tapos_block_num()+356)*37)%10+1;
+            uint8_t card2 = ((tapos_block_num()*234)+82)%10+1;
+
+            gt.modify(itr, _self, [&](auto &g){
+                g.cards_playera.push_back(card1);
+                g.cards_playerb.push_back(card2);
+            });
         }
 };
 
-EOSIO_ABI(bluff, (creategame)(joingame)(fold)(bet)(accept)(raise)(hold))
+EOSIO_ABI(bluff, (creategame)(joingame)(fold)(bet)(accept)(raise)(hold)(revealcards))
