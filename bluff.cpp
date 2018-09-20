@@ -342,16 +342,20 @@ void bluff :: revealcards(uint64_t id, account_name player){
     auto itr = gt.find(id);
 
     if(player == itr->player_a){
+
         for(auto i = itr->cards_playera.begin(); i != itr->cards_playera.end(); ++i){
+
             uint8_t card = *i;
-            sprintf(msg,"%u",card);
+            sprintf(msg, "%u",card);
             prints(msg);
         }
     }
     else{
+
         for(auto i = itr->cards_playerb.begin(); i != itr->cards_playerb.end(); ++i){
+            
             uint8_t card = *i;
-            sprintf(msg,"%u",card);
+            sprintf(msg, "%u",card);
             prints(msg);
         }
     }

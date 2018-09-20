@@ -55,7 +55,7 @@ class bluff: public eosio:: contract{
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
-        //@abi table gameu i64
+        //@abi table gamed i64
         struct game{
             
             uint64_t id;
@@ -86,7 +86,7 @@ class bluff: public eosio:: contract{
                             (round_number)(cards_playera)(cards_playerb))     */           
         };
 
-        typedef eosio::multi_index<N(gameu), game> game_table;
+        typedef eosio::multi_index<N(gamed), game> game_table;
         
         void startgame(uint64_t id){
 
@@ -140,17 +140,63 @@ class bluff: public eosio:: contract{
             eosio_assert(itr != gt.end(), "No such game exists");
             eosio_assert(itr->game_status == STARTED, "Game has not started yet");
 
-            gt.modify(itr, _self,[&](auto &g){
-                g.option_player_a = NONE;
-                g.option_player_b = NONE;
-                g.round_number += 1;
-            });
+            if(itr->round_number == 3){
+
+                uint8_t scoreplayera = 0;
+                uint8_t scoreplayerb = 0;
+
+                for(auto i = itr->cards_playera.begin(); i != itr->cards_playera.end(); ++i){
+                    scoreplayera += *i;
+                }
+
+                for(auto i = itr->cards_playerb.begin(); i != itr->cards_playerb.end(); ++i){
+                    scoreplayerb += *i;
+                }
+
+                if(scoreplayera == scoreplayerb){
+
+                    asset amount = (itr->pot)/2;
+                    account_name playera = itr->player_a;
+                    account_name playerb = itr->player_b;
+                    depositfunds(_self, playera, amount ,"Game drawn !!!");
+                    depositfunds(_self, playerb, amount, "Game drawn !!!");
+                    gt.modify(itr, _self, [&](auto &g){
+                        g.game_status = ENDED;
+                    });
+                }
+                else if(scoreplayera > scoreplayerb){
+                    
+                    gt.modify(itr, _self, [&](auto &g){
+                        g.winner = itr->player_a;
+                        g.game_status = ENDED;
+                    });
+                    decidewinner(id);
+                }
+                else{
+                    
+                    gt.modify(itr, _self, [&](auto &g){
+                        g.winner = itr->player_b;
+                        g.game_status = ENDED;
+                    });
+                    decidewinner(id);
+                }
+            }
+            else{
+
+                gt.modify(itr, _self,[&](auto &g){
+                    g.option_player_a = NONE;
+                    g.option_player_b = NONE;
+                    g.round_number += 1;
+                });
+            }
+
         }     
 
         void createcard(uint64_t id){
 
             game_table gt(_self, _self);
             auto itr = gt.find(id);
+
             uint8_t card1 = ((tapos_block_num()+356)*37)%10+1;
             uint8_t card2 = ((tapos_block_num()*234)+82)%10+1;
 
