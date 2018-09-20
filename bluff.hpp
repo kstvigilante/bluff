@@ -39,7 +39,10 @@ class bluff: public eosio:: contract{
         //@abi action
         void revealcards(uint64_t id, account_name player);
 
+<<<<<<< HEAD
         
+=======
+>>>>>>> a7578f1e198edc2448869cb37a0e39988883dbb2
     
     private:
 
@@ -55,7 +58,11 @@ class bluff: public eosio:: contract{
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
+<<<<<<< HEAD
         //@abi table gametb i64
+=======
+        //@abi table gamings i64
+>>>>>>> a7578f1e198edc2448869cb37a0e39988883dbb2
         struct game{
             
             uint64_t id;
@@ -83,6 +90,7 @@ class bluff: public eosio:: contract{
             EOSLIB_SERIALIZE(game, (id)(player_a)(player_b)(dealer)(turn)(winner)(pot)(game_status)
                             (option_player_a)(option_player_b)(curr_bet_Player_a)(curr_bet_player_b)
                             (score_player_a)(score_player_b)(total_bet_player_a)(total_bet_player_b)
+<<<<<<< HEAD
                             (round_number)(cards_playera)(cards_playerb))            
         };
 
@@ -90,6 +98,16 @@ class bluff: public eosio:: contract{
         
         void startgame(uint64_t id){
 
+=======
+                            (round_number)(cards_playera)(cards_playerb))               
+        };
+
+        typedef eosio::multi_index<N(gamings), game> game_table;
+        
+        void startgame(uint64_t id){
+
+            generatecards(id);
+>>>>>>> a7578f1e198edc2448869cb37a0e39988883dbb2
             game_table gt(_self, _self);
             auto itr = gt.find(id);
             eosio_assert(itr != gt.end(), "No such game exists");
@@ -140,6 +158,7 @@ class bluff: public eosio:: contract{
             eosio_assert(itr != gt.end(), "No such game exists");
             eosio_assert(itr->game_status == STARTED, "Game has not started yet");
 
+<<<<<<< HEAD
             if(itr->round_number == 3){
 
                 uint8_t scoreplayera = 0;
@@ -203,8 +222,36 @@ class bluff: public eosio:: contract{
             gt.modify(itr, _self, [&](auto &g){
                 g.cards_playera.push_back(card1);
                 g.cards_playerb.push_back(card2);
+=======
+            generatecards(id);
+            gt.modify(itr, _self,[&](auto &g){
+                g.option_player_a = NONE;
+                g.option_player_b = NONE;
+                g.round_number += 1;
+>>>>>>> a7578f1e198edc2448869cb37a0e39988883dbb2
             });
         }
+
+
+        void generatecards(uint64_t id){
+
+            game_table gt(_self, _self);
+            auto itr = gt.find(id);
+            eosio_assert(itr != gt.end(), "No such game exists");
+            print("Inside generate card method ");
+
+            uint8_t card1 = ((tapos_block_num()*4) +5)%10 +1;
+            uint8_t card2 = ((tapos_block_num()*6) +7)%10 +1;
+
+            gt.modify(itr, _self, [&](auto &g){
+                g.cards_playera.push_back(card1);
+                g.cards_playerb.push_back(card2);
+                print("Generating cards ");
+            });
+            print("Cards have been generated ");
+        }
+
+        
 };
 
 EOSIO_ABI(bluff, (creategame)(joingame)(fold)(bet)(accept)(raise)(hold)(revealcards))

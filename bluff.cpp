@@ -350,6 +350,7 @@ void bluff :: revealcards(uint64_t id, account_name player){
             prints(msg);
         }
     }
+<<<<<<< HEAD
     else{
 
         for(auto i = itr->cards_playerb.begin(); i != itr->cards_playerb.end(); ++i){
@@ -361,3 +362,29 @@ void bluff :: revealcards(uint64_t id, account_name player){
     }
 }
 
+=======
+}
+
+void bluff :: revealcards(uint64_t id, account_name player){
+    char *msg = (char *)malloc(64);
+
+    require_auth(player);
+    game_table gt(_self, _self);
+    auto itr = gt.find(id);
+
+    if(player == itr->player_a){
+        for(auto i = itr->cards_playera.begin(); i != itr->cards_playera.end(); ++i){
+            uint8_t card = *i;
+            sprintf(msg,"%u",card);
+            prints(msg);
+        }
+    }
+    else{
+        for(auto i = itr->cards_playerb.begin(); i != itr->cards_playerb.end(); ++i){
+            uint8_t card = *i;
+            sprintf(msg,"%u",card);
+            prints(msg);
+        }
+    }
+}
+>>>>>>> a7578f1e198edc2448869cb37a0e39988883dbb2
