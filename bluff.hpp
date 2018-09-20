@@ -55,7 +55,7 @@ class bluff: public eosio:: contract{
         const uint8_t RAISE = 4;
         const uint8_t ACCEPT = 5;
 
-        //@abi table gamed i64
+        //@abi table gametb i64
         struct game{
             
             uint64_t id;
@@ -80,13 +80,13 @@ class bluff: public eosio:: contract{
 
     
             uint64_t primary_key() const { return id; }
-            /* EOSLIB_SERIALIZE(game, (id)(player_a)(player_b)(dealer)(turn)(winner)(pot)(game_status)
+            EOSLIB_SERIALIZE(game, (id)(player_a)(player_b)(dealer)(turn)(winner)(pot)(game_status)
                             (option_player_a)(option_player_b)(curr_bet_Player_a)(curr_bet_player_b)
                             (score_player_a)(score_player_b)(total_bet_player_a)(total_bet_player_b)
-                            (round_number)(cards_playera)(cards_playerb))     */           
+                            (round_number)(cards_playera)(cards_playerb))            
         };
 
-        typedef eosio::multi_index<N(gamed), game> game_table;
+        typedef eosio::multi_index<N(gametb), game> game_table;
         
         void startgame(uint64_t id){
 
